@@ -81,10 +81,10 @@ jobs:
         # installed before actions/checkout.
         run: |
           dnf install -y \
-            git gcc-c++ cmake ninja-build wget unzip zip findutils tar gzip \
+            git gcc-c++ cmake ninja-build wget unzip zip \
             libstdc++-static \
             pixman-devel freetype-devel harfbuzz-devel zlib-devel \
-            openssl-devel openssl-static \
+            openssl-devel \
             libX11-devel libXcursor-devel libXi-devel libXrandr-devel \
             mesa-libGL-devel fontconfig-devel
       - uses: actions/checkout@v7
@@ -126,6 +126,13 @@ jobs:
             export skia_arch=x64
           fi
 
+          # Fedora doesn't ship static OpenSSL libs, so link it dynamically there.
+          if [[ "${{ matrix.platform }}" == "Fedora" ]] ; then
+            export openssl_static=OFF
+          else
+            export openssl_static=ON
+          fi
+
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 \
@@ -135,7 +142,7 @@ jobs:
             -DENABLE_CCACHE=$enable_ccache \
             -DLAF_BACKEND=$laf_backend \
             -DSKIA_DIR=$(realpath skia) \
-            -DOPENSSL_USE_STATIC_LIBS=ON \
+            -DOPENSSL_USE_STATIC_LIBS=$openssl_static \
             -DSKIA_LIBRARY_DIR=$(realpath skia/out/Release-$skia_arch)
       - name: Compiling
         shell: bash
